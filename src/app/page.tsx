@@ -29,7 +29,12 @@ const HomePage: React.FC = () => {
 
       const data = await response.json();
       setAnalysisResult(JSON.stringify(data, null, 2)); // Display raw JSON for now
-    } catch (err: any) {
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred');
+      }
       setError(err.message);
     } finally {
       setLoading(false);
