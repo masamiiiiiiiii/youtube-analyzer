@@ -35,7 +35,6 @@ const HomePage: React.FC = () => {
       } else {
         setError('An unknown error occurred');
       }
-      setError(err.message);
     } finally {
       setLoading(false);
     }
