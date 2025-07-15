@@ -1,7 +1,41 @@
-import React from 'react';
-import { TextField, Button, Box, Typography, Paper } from '@mui/material';
+'use client';
+import React, { useState } from 'react';
+import { TextField, Button, Box, Typography, Paper, CircularProgress, Alert } from '@mui/material';
 
 const HomePage: React.FC = () => {
+  const [youtubeUrl, setYoutubeUrl] = useState<string>('');
+  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleAnalyze = async () => {
+    setLoading(true);
+    setError(null);
+    setAnalysisResult(null);
+
+    try {
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: youtubeUrl }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Analysis failed');
+      }
+
+      const data = await response.json();
+      setAnalysisResult(JSON.stringify(data, null, 2)); // Display raw JSON for now
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Box>
       <Typography variant="h4" component="h1" gutterBottom>
@@ -16,18 +50,37 @@ const HomePage: React.FC = () => {
           label="YouTube Video URL"
           variant="outlined"
           sx={{ mr: 2 }}
+          value={youtubeUrl}
+          onChange={(e) => setYoutubeUrl(e.target.value)}
+          disabled={loading}
         />
-        <Button variant="contained" color="primary" size="large">
-          Analyze
+        <Button
+          variant="contained"
+          color="primary"
+          size="large"
+          onClick={handleAnalyze}
+          disabled={loading || !youtubeUrl}
+        >
+          {loading ? <CircularProgress size={24} color="inherit" /> : 'Analyze'}
         </Button>
       </Box>
 
-      <Paper sx={{ mt: 5, p: 3, display: 'none' }} elevation={3}>
-        <Typography variant="h5" component="h2" gutterBottom>
-          Analysis Results
-        </Typography>
-        {/* Analysis results will be displayed here */}
-      </Paper>
+      {error && (
+        <Alert severity="error" sx={{ mt: 3 }}>
+          {error}
+        </Alert>
+      )}
+
+      {analysisResult && (
+        <Paper sx={{ mt: 5, p: 3 }} elevation={3}>
+          <Typography variant="h5" component="h2" gutterBottom>
+            Analysis Results
+          </Typography>
+          <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+            {analysisResult}
+          </pre>
+        </Paper>
+      )}
     </Box>
   );
 };
