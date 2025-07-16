@@ -1,8 +1,9 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from pydantic import BaseModel
 import yt_dlp
 import os
 import uuid
+import shutil
 
 app = FastAPI()
 
@@ -44,3 +45,16 @@ def analyze_video(video_url: VideoURL):
         # Clean up the audio file after processing (or after this test phase)
         if os.path.exists(audio_path):
             os.remove(audio_path)
+
+@app.post("/api/uploadfile/")
+async def create_upload_file(file: UploadFile = File(...)):
+    try:
+        file_location = f"/tmp/{file.filename}"
+        with open(file_location, "wb+") as file_object:
+            shutil.copyfileobj(file.file, file_object)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload file: {e}")
+    finally:
+        file.file.close()
+
+    return {"message": "File uploaded successfully", "filename": file.filename, "file_location": file_location}
