@@ -4,6 +4,11 @@ import yt_dlp
 import os
 import uuid
 import shutil
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -48,13 +53,17 @@ def analyze_video(video_url: VideoURL):
 
 @app.post("/api/uploadfile/")
 async def create_upload_file(file: UploadFile = File(...)):
+    logger.info("File upload started.")
     try:
         file_location = f"/tmp/{file.filename}"
         with open(file_location, "wb+") as file_object:
             shutil.copyfileobj(file.file, file_object)
+        logger.info(f"File uploaded successfully: {file.filename}")
     except Exception as e:
+        logger.error(f"Error during file upload: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to upload file: {e}")
     finally:
         file.file.close()
+        logger.info("File upload process finished.")
 
     return {"message": "File uploaded successfully", "filename": file.filename, "file_location": file_location}
