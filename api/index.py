@@ -15,11 +15,11 @@ app = FastAPI()
 class VideoURL(BaseModel):
     url: str
 
-@app.get("/api/hello")
+@app.get("/hello")
 def hello():
     return {"message": "Hello from FastAPI!"}
 
-@app.post("/api/analyze")
+@app.post("/analyze")
 def analyze_video(video_url: VideoURL):
     video_id = str(uuid.uuid4())
     audio_path = f"/tmp/{video_id}.mp3"
@@ -51,7 +51,7 @@ def analyze_video(video_url: VideoURL):
         if os.path.exists(audio_path):
             os.remove(audio_path)
 
-@app.post("/api/uploadfile/")
+@app.post("/uploadfile/")
 async def create_upload_file(file: UploadFile = File(...)):
     logger.info("File upload started.")
     try:
