@@ -11,11 +11,11 @@ app = FastAPI()
 class S3VideoURL(BaseModel):
     s3Url: str
 
-@app.get("/hello")
+@app.get("/api/hello")
 def hello():
     return {"message": "Hello from FastAPI!"}
 
-@app.post("/analyze-s3")
+@app.post("/api/analyze-s3")
 async def analyze_s3_video(video_url: S3VideoURL):
     logger.info(f"Received S3 URL for analysis: {video_url.s3Url}")
     # ここにS3から動画をダウンロードし、分析ジョブをトリガーするロジックを追加します。
