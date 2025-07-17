@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { TextField, Button, Box, Typography, Paper, CircularProgress, Alert, Tabs, Tab } from '@mui/material';
-import { S3Client } from "@aws-sdk/client-s3";
+import { S3Client, CompleteMultipartUploadCommandOutput } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 
 const HomePage: React.FC = () => {
