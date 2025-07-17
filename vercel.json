@@ -1,6 +1,11 @@
 {
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python"
+    }
+  ],
   "rewrites": [
-    { "source": "/api/uploadfile", "destination": "/api" },
     { "source": "/api/(.*)", "destination": "/api" }
   ]
 }
