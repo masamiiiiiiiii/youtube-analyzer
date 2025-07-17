@@ -83,7 +83,7 @@ const HomePage: React.FC = () => {
       });
 
       upload.on("httpUploadProgress", (progress) => {
-        if (progress.total) {
+        if (progress.total && progress.loaded !== undefined) {
           setUploadProgress(Math.round((progress.loaded / progress.total) * 100));
         }
       });
