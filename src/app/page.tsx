@@ -88,8 +88,8 @@ const HomePage: React.FC = () => {
         }
       });
 
-      const data = await upload.done();
-      const s3FileUrl = (data as any).Location; // S3から返されるファイルのURL
+      const data: CompleteMultipartUploadCommandOutput = await upload.done();
+      const s3FileUrl = data.Location;
 
       // S3へのアップロードが完了したら、バックエンドにURLを通知
       const response = await fetch('/api/analyze-s3', { // 新しいAPIエンドポイントを想定
