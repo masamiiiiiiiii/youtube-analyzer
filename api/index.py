@@ -6,16 +6,16 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-api = FastAPI()
+app = FastAPI()
 
 class S3VideoURL(BaseModel):
     s3Url: str
 
-@api.get("/hello")
+@app.get("/hello")
 def hello():
     return {"message": "Hello from FastAPI!"}
 
-@api.post("/analyze-s3")
+@app.post("/analyze-s3")
 async def analyze_s3_video(video_url: S3VideoURL):
     logger.info(f"Received S3 URL for analysis: {video_url.s3Url}")
     # ここにS3から動画をダウンロードし、分析ジョブをトリガーするロジックを追加します。
