@@ -10,16 +10,16 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
+api = FastAPI()
 
 class VideoURL(BaseModel):
     url: str
 
-@app.get("/hello")
+@api.get("/hello")
 def hello():
     return {"message": "Hello from FastAPI!"}
 
-@app.post("/analyze")
+@api.post("/analyze")
 def analyze_video(video_url: VideoURL):
     video_id = str(uuid.uuid4())
     audio_path = f"/tmp/{video_id}.mp3"
@@ -51,7 +51,7 @@ def analyze_video(video_url: VideoURL):
         if os.path.exists(audio_path):
             os.remove(audio_path)
 
-@app.post("/uploadfile/")
+@api.post("/uploadfile/")
 async def create_upload_file(file: UploadFile = File(...)):
     logger.info("File upload started.")
     try:
