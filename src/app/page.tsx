@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { TextField, Button, Box, Typography, Paper, CircularProgress, Alert, Tabs, Tab } from '@mui/material';
-// S3関連のインポートはコメントアウトまたは削除
+// AWS SDK関連のインポートは不要になるため削除
 // import { S3Client, CompleteMultipartUploadCommandOutput } from "@aws-sdk/client-s3";
 // import { Upload } from "@aws-sdk/lib-storage";
 
@@ -14,7 +14,7 @@ const HomePage: React.FC = () => {
   const [tabValue, setTabValue] = useState<number>(0); // 0 for URL, 1 for File Upload
   const [uploadProgress, setUploadProgress] = useState<number>(0);
 
-  // S3Clientの初期化はコメントアウトまたは削除
+  // S3Clientの初期化は不要になるため削除
   // const s3Client = new S3Client({
   //   region: process.env.NEXT_PUBLIC_AWS_REGION,
   //   credentials: {
@@ -29,7 +29,7 @@ const HomePage: React.FC = () => {
     setAnalysisResult(null);
 
     try {
-      const response = await fetch('/api/analyze', {
+      const response = await fetch('/api/analyze-youtube', { // エンドポイント名を変更
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -66,36 +66,58 @@ const HomePage: React.FC = () => {
     setAnalysisResult(null);
     setUploadProgress(0);
 
-    // S3関連のコードをコメントアウトまたは削除
-    // const bucketName = process.env.NEXT_PUBLIC_S3_BUCKET_NAME;
-    // if (!bucketName) {
-    //   setError('S3 bucket name is not configured.');
-    //   setLoading(false);
-    //   return;
-    // }
-
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-
     try {
-      // ローカルのFastAPIバックエンドに直接アップロード
-      const response = await fetch('http://localhost:8000/api/uploadfile/', {
+      // バックエンドから署名付きURLを取得
+      const getSignedUrlResponse = await fetch('/api/get-gcs-signed-url', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ filename: selectedFile.name, contentType: selectedFile.type }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'File upload failed');
+      if (!getSignedUrlResponse.ok) {
+        const errorData = await getSignedUrlResponse.json();
+        throw new Error(errorData.detail || 'Failed to get signed URL');
       }
 
-      const data = await response.json();
-      setAnalysisResult(JSON.stringify(data, null, 2));
+      const { signedUrl, gcsFileUrl } = await getSignedUrlResponse.json();
+
+      // 署名付きURLを使ってGCSに直接アップロード
+      const uploadResponse = await fetch(signedUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': selectedFile.type,
+        },
+        body: selectedFile,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Failed to upload to GCS: ${uploadResponse.statusText}`);
+      }
+
+      // GCSへのアップロードが完了したら、バックエンドにGCSのURLを通知
+      const analyzeResponse = await fetch('/api/analyze-gcs', { // エンドポイント名を変更
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ gcsUrl: gcsFileUrl }),
+      });
+
+      if (!analyzeResponse.ok) {
+        const errorData = await analyzeResponse.json();
+        throw new Error(errorData.detail || 'Analysis failed after GCS upload');
+      }
+
+      const resultData = await analyzeResponse.json();
+      setAnalysisResult(JSON.stringify(resultData, null, 2));
+
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('An unknown error occurred during file upload.');
+        setError('An unknown error occurred during GCS upload or analysis.');
       }
     } finally {
       setLoading(false);

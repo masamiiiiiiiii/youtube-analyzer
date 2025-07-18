@@ -3,9 +3,8 @@ from pydantic import BaseModel
 import logging
 import os
 import json
-import requests
-from google.auth.transport.requests import Request
-from google.oauth2 import id_token
+from google.cloud import storage
+from datetime import timedelta
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -13,59 +12,41 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# CORS設定を追加
-origins = [
-    "http://localhost:3000", # Next.jsのデフォルトポート
-    "http://localhost:8000", # FastAPIのデフォルトポート
-    "https://youtube-analyzer-*.vercel.app", # Vercelデプロイのドメインパターン
-]
+class SignedURLRequest(BaseModel):
+    filename: str
+    contentType: str
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-class S3VideoURL(BaseModel):
-    s3Url: str
+class GCSVideoURL(BaseModel):
+    gcsUrl: str
 
 @app.get("/api/hello")
 def hello():
     return {"message": "Hello from FastAPI!"}
 
-@app.post("/api/analyze-s3")
-async def analyze_s3_video(video_url: S3VideoURL):
-    logger.info(f"Received S3 URL for analysis: {video_url.s3Url}")
+@app.post("/api/get-gcs-signed-url")
+async def get_gcs_signed_url(request: SignedURLRequest):
+    bucket_name = os.environ.get('GCS_BUCKET_NAME')
+    if not bucket_name:
+        raise HTTPException(status_code=500, detail="GCS bucket name is not configured.")
 
-    # Cloud Run サービスのURLとサービスアカウントのメールアドレスを環境変数から取得
-    cloud_run_service_url = os.environ.get('CLOUD_RUN_SERVICE_URL')
-    service_account_email = os.environ.get('GCP_SERVICE_ACCOUNT_EMAIL')
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(f"uploads/{request.filename}")
 
-    if not cloud_run_service_url or not service_account_email:
-        raise HTTPException(status_code=500, detail="Cloud Run service URL or service account email not configured.")
+    # 署名付きURLを生成
+    signed_url = blob.generate_signed_url(
+        version="v4",
+        expiration=timedelta(minutes=15),  # URLの有効期限
+        method="PUT",
+        content_type=request.contentType
+    )
+    gcs_file_url = f"gs://{bucket_name}/uploads/{request.filename}"
 
-    try:
-        # IDトークンを取得して認証ヘッダーを作成
-        auth_req = Request()
-        id_token_jwt = id_token.fetch_id_token(auth_req, cloud_run_service_url)
+    return {"signedUrl": signed_url, "gcsFileUrl": gcs_file_url}
 
-        headers = {
-            'Authorization': f'Bearer {id_token_jwt}',
-            'Content-Type': 'application/json'
-        }
-
-        # Cloud Run サービスにリクエストを送信
-        response = requests.post(
-            cloud_run_service_url + "/analyze-video", # Cloud Run サービス内のエンドポイント
-            headers=headers,
-            data=json.dumps({'s3Url': video_url.s3Url})
-        )
-        response.raise_for_status() # HTTPエラーが発生した場合に例外を発生させる
-
-        logger.info(f"Cloud Run invocation response: {response.json()}")
-        return {"message": "Analysis job triggered successfully", "s3Url": video_url.s3Url}
-    except Exception as e:
-        logger.error(f"Error invoking Cloud Run service: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to trigger analysis job: {e}")
+@app.post("/api/analyze-gcs")
+async def analyze_gcs_video(video_url: GCSVideoURL):
+    logger.info(f"Received GCS URL for analysis: {video_url.gcsUrl}")
+    # ここにCloud Run サービスをトリガーするロジックを追加します。
+    # 現時点では、GCS URLを受け取ったことを確認するメッセージを返します。
+    return {"message": "GCS URL received for analysis", "gcsUrl": video_url.gcsUrl}
