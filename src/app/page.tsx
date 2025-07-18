@@ -1,8 +1,9 @@
 'use client';
 import React, { useState } from 'react';
 import { TextField, Button, Box, Typography, Paper, CircularProgress, Alert, Tabs, Tab } from '@mui/material';
-import { S3Client, CompleteMultipartUploadCommandOutput } from "@aws-sdk/client-s3";
-import { Upload } from "@aws-sdk/lib-storage";
+// S3関連のインポートはコメントアウトまたは削除
+// import { S3Client, CompleteMultipartUploadCommandOutput } from "@aws-sdk/client-s3";
+// import { Upload } from "@aws-sdk/lib-storage";
 
 const HomePage: React.FC = () => {
   const [youtubeUrl, setYoutubeUrl] = useState<string>('');
@@ -13,13 +14,14 @@ const HomePage: React.FC = () => {
   const [tabValue, setTabValue] = useState<number>(0); // 0 for URL, 1 for File Upload
   const [uploadProgress, setUploadProgress] = useState<number>(0);
 
-  const s3Client = new S3Client({
-    region: process.env.NEXT_PUBLIC_AWS_REGION,
-    credentials: {
-      accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID || '',
-      secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY || '',
-    },
-  });
+  // S3Clientの初期化はコメントアウトまたは削除
+  // const s3Client = new S3Client({
+  //   region: process.env.NEXT_PUBLIC_AWS_REGION,
+  //   credentials: {
+  //     accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID || '',
+  //     secretAccessKey: process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY || '',
+  //   },
+  // });
 
   const handleAnalyzeURL = async () => {
     setLoading(true);
@@ -64,55 +66,36 @@ const HomePage: React.FC = () => {
     setAnalysisResult(null);
     setUploadProgress(0);
 
-    const bucketName = process.env.NEXT_PUBLIC_S3_BUCKET_NAME;
-    if (!bucketName) {
-      setError('S3 bucket name is not configured.');
-      setLoading(false);
-      return;
-    }
+    // S3関連のコードをコメントアウトまたは削除
+    // const bucketName = process.env.NEXT_PUBLIC_S3_BUCKET_NAME;
+    // if (!bucketName) {
+    //   setError('S3 bucket name is not configured.');
+    //   setLoading(false);
+    //   return;
+    // }
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
 
     try {
-      const upload = new Upload({
-        client: s3Client,
-        params: {
-          Bucket: bucketName,
-          Key: `uploads/${selectedFile.name}`,
-          Body: selectedFile,
-          ContentType: selectedFile.type,
-        },
-      });
-
-      upload.on("httpUploadProgress", (progress) => {
-        if (progress.total && progress.loaded !== undefined) {
-          setUploadProgress(Math.round((progress.loaded / progress.total) * 100));
-        }
-      });
-
-      const data: CompleteMultipartUploadCommandOutput = await upload.done();
-      const s3FileUrl = data.Location;
-
-      // S3へのアップロードが完了したら、バックエンドにURLを通知
-      const response = await fetch('/api/analyze-s3', { // 新しいAPIエンドポイントを想定
+      // ローカルのFastAPIバックエンドに直接アップロード
+      const response = await fetch('http://localhost:8000/api/uploadfile/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ s3Url: s3FileUrl }),
+        body: formData,
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Analysis failed after S3 upload');
+        throw new Error(errorData.detail || 'File upload failed');
       }
 
-      const resultData = await response.json();
-      setAnalysisResult(JSON.stringify(resultData, null, 2));
-
+      const data = await response.json();
+      setAnalysisResult(JSON.stringify(data, null, 2));
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('An unknown error occurred during S3 upload or analysis.');
+        setError('An unknown error occurred during file upload.');
       }
     } finally {
       setLoading(false);

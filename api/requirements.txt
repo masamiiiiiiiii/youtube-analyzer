@@ -3,3 +3,7 @@ uvicorn
 yt-dlp
 python-multipart
 boto3
+ffmpeg-python
+google-auth
+google-auth-httplib2
+requests

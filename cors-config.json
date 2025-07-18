@@ -1,0 +1,10 @@
+    1     cat << EOF > cors-config.json
+    2     [
+    3       {
+    4         "origin": ["*"],
+    5         "method": ["GET", "PUT", "POST"],
+    6         "responseHeader": ["*"],
+    7         "maxAgeSeconds": 3600
+    8       }
+    9     ]
+   10     EOF
