@@ -29,7 +29,7 @@ const HomePage: React.FC = () => {
     setAnalysisResult(null);
 
     try {
-      const response = await fetch('/api/analyze-youtube', { // エンドポイント名を変更
+      const response = await fetch('https://video-analyzer-service-256206482530.asia-southeast2.run.app/api/analyze-youtube', { // Cloud Run URLに直接変更
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -68,7 +68,7 @@ const HomePage: React.FC = () => {
 
     try {
       // バックエンドから署名付きURLを取得
-      const getSignedUrlResponse = await fetch('/api/get-gcs-signed-url', {
+      const getSignedUrlResponse = await fetch('https://video-analyzer-service-256206482530.asia-southeast2.run.app/api/get-gcs-signed-url', { // Cloud Run URLに直接変更
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -97,7 +97,7 @@ const HomePage: React.FC = () => {
       }
 
       // GCSへのアップロードが完了したら、バックエンドにGCSのURLを通知
-      const analyzeResponse = await fetch('/api/analyze-gcs', { // エンドポイント名を変更
+      const analyzeResponse = await fetch('https://video-analyzer-service-256206482530.asia-southeast2.run.app/api/analyze-gcs', { // Cloud Run URLに直接変更
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
